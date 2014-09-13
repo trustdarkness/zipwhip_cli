@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import subprocess
+import argparse
 import getpass
 import pickle
 import sys
@@ -86,55 +87,7 @@ def console_ui(s):
   print(" ")
   response = input("selection: ")
   if int(response) == 1:
-    cl = zwc.conversation_list(s)
-    print("New? | %14s | Msg: " % "From:")
-    for k,v in cl.items():
-      if k == 'response':
-        for i, d in enumerate(v):
-          # d looks like
-          # { 'class' : 'java class name'
-          #   'bcc' :
-          #   'lastUpdated' : (timestamp)
-          #   'address' : 'ptn:/phone_number'
-          #   ...
-          #   'lastContactMobileNumber' : 'phone_number'
-	  #   'lastContactName': 'name'
-          #   'new' : True/False
-          #   'lastMessageBody' : 'msg_body'
-          if d.get('new'):
-            star = '*'
-          else:
-            star = ' ' 
-          lastMsg = d.get('lastMessageBody').replace('\n', ' ')
-          if not d.get('lastContactFirstName') and not \
-            d.get('lastContactLastName'):
-            contact = d.get('lastContactMobileNumber')
-          else:
-            contact = "%s %s" % \
-              (d.get('lastContactFirstName'), d.get('lastContactLastName'))
-          multiline = False
-          if len(lastMsg) > 56:
-            multiline = True
-            words = lastMsg.split()
-            num_lines = int((len(lastMsg)/56))+2
-            lines = [" "]*num_lines
-            line = 0
-            for word in words:
-              if len(lines[line]) + len(word) < 56:
-                lines[line] += "%s " % word
-              else:
-                line = line+1
-                lines[line] += "%s " % word
-          if multiline:
-            line = 0
-            print("%4s | %14s | %s" % (star, contact, lines[line]))
-            while line < len(lines)-1:
-              line = line+1
-              print("%4s | %14s | %s" % (" ", " ", lines[line]))
-          else:  
-            print("%4s | %14s | %s" % (star, contact, lastMsg)) 
-          if i > 1 and i % 19 == 0:
-            yn = input("  <more> ")
+    show_recent(s, interactive=True)
   elif int(response) == 2:
     num = input("Phone Number to Text: ")
     msg = input("Message to send: ")
@@ -149,7 +102,138 @@ def console_ui(s):
       r = zwc.message_send(s, num, msg)
       if r.get("success"):
         print("Message sent successfully!")
+
+def show_recent(s, num="all", interactive=False):
+  """Get recent text messages and display them to the console.  
+
+  Args:
+    s - String - session key
+    num - int - number of recent messages to show.  If not specified, we'll 
+      show them all.
+    interactive - boolean - if True, we'll break the screen every so often
+      for console reading.
+  """
+  cl = zwc.conversation_list(s)
+  print("New? | %14s | Msg: " % "From:")
+  for k,v in cl.items():
+    if k == 'response':
+      for i, d in enumerate(v):
+        if num != "all" and i > num:
+          return
+        # d looks like
+        # { 'class' : 'java class name'
+        #   'bcc' :
+        #   'lastUpdated' : (timestamp)
+        #   'address' : 'ptn:/phone_number'
+        #   ...
+        #   'lastContactMobileNumber' : 'phone_number'
+        #   'lastContactName': 'name'
+        #   'new' : True/False
+        #   'lastMessageBody' : 'msg_body'
+        if d.get('new'):
+          star = '*'
+        else:
+          star = ' ' 
+        lastMsg = d.get('lastMessageBody').replace('\n', ' ')
+        if not d.get('lastContactFirstName') and not \
+          d.get('lastContactLastName'):
+          contact = d.get('lastContactMobileNumber')
+        else:
+          contact = "%s %s" % \
+            (d.get('lastContactFirstName'), d.get('lastContactLastName'))
+        multiline = False
+        if len(lastMsg) > 56:
+          multiline = True
+          words = lastMsg.split()
+          num_lines = int((len(lastMsg)/56))+2
+          lines = [" "]*num_lines
+          line = 0
+          for word in words:
+            if len(lines[line]) + len(word) < 56:
+              lines[line] += "%s " % word
+            else:
+              line = line+1
+              lines[line] += "%s " % word
+        if multiline:
+          line = 0
+          print("%4s | %14s | %s" % (star, contact, lines[line]))
+          while line < len(lines)-1:
+            line = line+1
+            print("%4s | %14s | %s" % (" ", " ", lines[line]))
+        else:  
+          print("%4s | %14s | %s" % (star, contact, lastMsg)) 
+        if interactive:
+          if i > 1 and i % 19 == 0:
+            yn = input("  <more> ")
+
              
 if __name__ == "__main__":
-  s = authenticate()
-  console_ui(s) 
+  p = argparse.ArgumentParser()
+  p.add_argument("-c", "--cron", action="store_true",
+   help=" ".join([
+      "Run in 'cron' mode, or non-interactively... meant for cron jobs",
+      "or watch processes.  Defaults to 'read' mode, reading recent texts",
+      "to standard out.  Can be combined with -s for send or -r for read,"]))
+  p.add_argument("-r", "--read", action="store", type=int, default=10,
+    dest="read", help=" ".join([
+      "Read the last X text messages to std out. Can be run like",
+      "./zwcli.py -r20 to read only the last 20 messages, defaults to 10"]))
+  p.add_argument("-s", "--send", action="store_true",
+    dest="send", help=" ".join([
+      "Run in send mode.  Must be combined with -t and -m (but may be",
+      "also be combined with -u and -p to specify a user and password,",
+      "for use with cron, etc."]))
+  p.add_argument("-t", "--to", action="store", default=None,
+    dest="to", help=" ".join([
+      "Number to send a message to, must be combined with -s and -t",
+      "Currently must be a phone number, a named contacts will not work."]))
+  p.add_argument("-m", "--msg", action="store", default=None,
+    dest="msg", help="\n".join([
+      "Message to send.  Must be combined with -s and -t.  Length is",
+      "limited by either zipwhip or your carrier.  Nothing is guaranteed.",
+      "enclose your message in quotes for best results, like:",
+      " ",
+      "./zwcli.py -s -t5555555555 -m'LOL ROFLMAOBBQ!!!' "]))
+  p.add_argument("-u", "--user", action="store", default=None,
+    dest="user", help=" ".join([
+      "Username / Phonenumber to send from.  Currently must be a 10 digit",
+      "phone number that is already setup on zipwhip in the form 5555555555.",
+      "If you don't supply a username, we will try to use a previously",
+      "saved one or prompt you on the console."]))
+  p.add_argument("-p", "--password", action="store", default=None,
+    dest="password", help=" ".join([ 
+      "Password for zipwhip account to send from.  Beware bash history!",
+      "If you don't supply a password, we will try to use a previously",
+      "saved one or prompt you on the console."]))
+
+  args = p.parse_args()
+  if args.user and args.password:
+    r = zwc.user_login(args.user,args.password)
+    s = r.get("response")
+    if r.get("success"):
+      print("You've successfully logged in.")
+  elif args.user or args.password:
+    print("-u and -p must always go together")
+    sys.exit(0)
+  else:
+    s = authenticate()
+  if args.cron and args.send:
+    if not args.to or not args.msg:
+      print("-s must be combined with -t and -m at a minimum")
+      sys.exit(0)
+    else:
+      r = zwc.message_send(s, args.to, args.msg)
+      if r.get("success"):
+        print("Message sent successfully!")
+  elif args.send:
+    if not args.to or not args.msg:
+      print("-s must be combined with -t and -m at a minimum")
+      sys.exit(0)
+    else:
+      r = zwc.message_send(s, args.to, args.msg)
+      if r.get("success"):
+        print("Message sent successfully!")
+  elif args.cron:
+    show_recent(s, args.read) 
+  else:
+    console_ui(s) 
