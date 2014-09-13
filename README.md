@@ -25,6 +25,44 @@ text messages via a phone number.
 
 Usage is pretty simple:
 
+    usage: zwcli.py [-h] [-c] [-r READ] [-s] [-t TO] [-m MSG] [-u USER]
+                [-p PASSWORD]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -c, --cron            Run in 'cron' mode, or non-interactively... meant for   
+                            cron jobs or watch processes. Defaults to 'read' mode,
+                            reading recent texts to standard out. Can be combined
+                            with -s for send or -r for read,
+      -r READ, --read READ  Read the last X text messages to std out. Can be run
+                            like ./zwcli.py -r20 to read only the last 20
+                            messages, defaults to 10
+      -s, --send            Run in send mode. Must be combined with -t and -m (but
+                            may be also be combined with -u and -p to specify a
+                            user and password, for use with cron, etc.
+      -t TO, --to TO        Number to send a message to, must be combined with -s
+                            and -t Currently must be a phone number, a named
+                            contacts will not work.
+      -m MSG, --msg MSG     Message to send. Must be combined with -s and -t.
+                            Length is limited by either zipwhip or your carrier.
+                            Nothing is guaranteed. enclose your message in quotes
+                            for best results, like: ./zwcli.py -s -t5555555555
+                            -m'LOL ROFLMAOBBQ!!!'
+      -u USER, --user USER  Username / Phonenumber to send from. Currently must be
+                            a 10 digit phone number that is already setup on
+                            zipwhip in the form 5555555555. If you don't supply a
+                            username, we will try to use a previously saved one or
+                            prompt you on the console.
+      -p PASSWORD, --password PASSWORD
+                            Password for zipwhip account to send from. Beware bash
+                            history! If you don't supply a password, we will try
+                            to use a previously saved one or prompt you on the
+                            console.    
+
+
+Examples:
+=========
+
     $ ./zwcli.py
     Enter zipwhip number: 3125555555
     Enter password: 
