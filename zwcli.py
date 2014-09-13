@@ -87,7 +87,7 @@ def console_ui(s):
   response = input("selection: ")
   if int(response) == 1:
     cl = zwc.conversation_list(s)
-    print("New? | From:      | Msg: ")
+    print("New? | %14s | Msg: " % "From:")
     for k,v in cl.items():
       if k == 'response':
         for i, d in enumerate(v):
@@ -98,6 +98,7 @@ def console_ui(s):
           #   'address' : 'ptn:/phone_number'
           #   ...
           #   'lastContactMobileNumber' : 'phone_number'
+	  #   'lastContactName': 'name'
           #   'new' : True/False
           #   'lastMessageBody' : 'msg_body'
           if d.get('new'):
@@ -105,28 +106,33 @@ def console_ui(s):
           else:
             star = ' ' 
           lastMsg = d.get('lastMessageBody').replace('\n', ' ')
-          num = d.get('lastContactMobileNumber')
+          if not d.get('lastContactFirstName') and not \
+            d.get('lastContactLastName'):
+            contact = d.get('lastContactMobileNumber')
+          else:
+            contact = "%s %s" % \
+              (d.get('lastContactFirstName'), d.get('lastContactLastName'))
           multiline = False
-          if len(lastMsg) > 60:
+          if len(lastMsg) > 56:
             multiline = True
             words = lastMsg.split()
-            num_lines = int((len(lastMsg)/60))+2
+            num_lines = int((len(lastMsg)/56))+2
             lines = [" "]*num_lines
             line = 0
             for word in words:
-              if len(lines[line]) + len(word) < 60:
+              if len(lines[line]) + len(word) < 56:
                 lines[line] += "%s " % word
               else:
                 line = line+1
                 lines[line] += "%s " % word
           if multiline:
             line = 0
-            print("%4s | %10s | %s" % (star, num, lines[line]))
+            print("%4s | %14s | %s" % (star, contact, lines[line]))
             while line < len(lines)-1:
               line = line+1
-              print("%4s | %10s | %s" % (" ", " ", lines[line]))
+              print("%4s | %14s | %s" % (" ", " ", lines[line]))
           else:  
-            print("%4s | %10s | %s" % (star, num, lastMsg)) 
+            print("%4s | %14s | %s" % (star, contact, lastMsg)) 
           if i > 1 and i % 19 == 0:
             yn = input("  <more> ")
   elif int(response) == 2:
