@@ -24,68 +24,69 @@ in every conversation in your texting "inbox" and it will allow you to send
 text messages via a phone number.
 
 Usage is pretty simple:
-$ ./zwcli.py
-Enter zipwhip number: 3125555555
-Enter password: 
-Would you like to save this info? 
-THIS IS NOT SECURE and will allow anyone with access to this
-account on your computer the ability to send and recieve 
-messages via your ZipWhip account
-Save? y/n 
-ySelect one of the following options:
-    1. See recent conversations
-    2. Send a text
+
+    $ ./zwcli.py
+    Enter zipwhip number: 3125555555
+    Enter password: 
+    Would you like to save this info? 
+    THIS IS NOT SECURE and will allow anyone with access to this
+    account on your computer the ability to send and recieve 
+    messages via your ZipWhip account
+    Save? y/n y
+    Select one of the following options:
+        1. See recent conversations
+        2. Send a text
  
-selection: 1
-New? | From:      | Msg: 
-     | 651XXXXXXX | Not 4 hours big dude! Maybe 20 min with a real connection.
-     | 312XXXXXXX | testing 
-     | 773XXXXXXX | again.
-     | 312XXXXXXX | Sure
-     | 630XXXXXXX | no problem... we'll talk soon.
-     | 773XXXXXXX | -=call=-  Outgoing Phone Call Duration: 60 seconds
-     | 630XXXXXXX | -=call=-  Outgoing Phone Call Duration: 14 seconds
-     | 805XXXXXXX | -=call=-  Outgoing Phone Call Duration: 20 seconds
-     | 630XXXXXXX | -=call=-  Missed Phone Call
-     | 630XXXXXXX | Thanks
-     | 773XXXXXXX |  sorry for the delayed response... didn't see your message 
-     |            |  right away
-     |            |  
-     |            |  
-     |      20000 |  .signup verify 9309 Zipwhip installation complete! To 
-     |            |  send, receive, and view all your texts complete 
-     |            |  registration from your computer at zipwhip.com 
-     |            |  
-     |        456 |  Free T-Mobile Msg: $60.00 has been added to your account. 
-     |            |  Your new balance is $61.00. Thanks for refilling! 
-     |            |  
-     | 952XXXXXXX |  i think we'll have a better idea about january
-     | 708XXXXXXX | Nooo
-     | 773XXXXXXX | Another test
-     | 7084850010 | -=call=-  Incoming Phone Call Duration: 29 seconds
-  <more> 
+    selection: 1
+    New? | From:      | Msg: 
+         | 651XXXXXXX | Not 4 hours big dude! Maybe 20 min with a real connection.
+         | 312XXXXXXX | testing 
+         | 773XXXXXXX | again.
+         | 312XXXXXXX | Sure
+         | 630XXXXXXX | no problem... we'll talk soon.
+         | 773XXXXXXX | -=call=-  Outgoing Phone Call Duration: 60 seconds
+         | 630XXXXXXX | -=call=-  Outgoing Phone Call Duration: 14 seconds
+         | 805XXXXXXX | -=call=-  Outgoing Phone Call Duration: 20 seconds
+         | 630XXXXXXX | -=call=-  Missed Phone Call
+         | 630XXXXXXX | Thanks
+         | 773XXXXXXX |  sorry for the delayed response... didn't see your message 
+         |            |  right away
+         |            |  
+         |            |  
+         |      20000 |  .signup verify 9309 Zipwhip installation complete! To 
+         |            |  send, receive, and view all your texts complete 
+         |            |  registration from your computer at zipwhip.com 
+         |            |  
+         |        456 |  Free T-Mobile Msg: $60.00 has been added to your account. 
+         |            |  Your new balance is $61.00. Thanks for refilling! 
+         |            |  
+         | 952XXXXXXX |  i think we'll have a better idea about january
+         | 708XXXXXXX | Nooo
+         | 773XXXXXXX | Another test
+         | 7084850010 | -=call=-  Incoming Phone Call Duration: 29 seconds
+      <more> 
 
 
 
 +++ snip +++
 
-$ ./zwcli.py
-You've successfully logged in.
-Select one of the following options:
-    1. See recent conversations
-    2. Send a text
+    $ ./zwcli.py
+    You've successfully logged in.
+    Select one of the following options:
+        1. See recent conversations
+        2. Send a text
  
-selection: 2
-Phone Number to Text: 773XXXXXXX
-Message to send: I hate white rabbits!
+    selection: 2
+    Phone Number to Text: 773XXXXXXX
+    Message to send: I hate white rabbits!
  
-Getting ready to send
+    Getting ready to send
  
-     I hate white rabbits!
+         I hate white rabbits!
  
-  to: 773XXXXXXX
-Confirm? y/n y
-Message sent successfully!
+      to: 773XXXXXXX
+    Confirm? y/n y
+    Message sent successfully!
 
 
 TODOS:
