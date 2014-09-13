@@ -114,7 +114,7 @@ def show_recent(s, num="all", interactive=False):
       for console reading.
   """
   cl = zwc.conversation_list(s)
-  print("New? | %14s | Msg: " % "From:")
+  print("New? | %14s | Last Msg: " % "Conv With:")
   for k,v in cl.items():
     if k == 'response':
       for i, d in enumerate(v):
@@ -233,6 +233,13 @@ if __name__ == "__main__":
       r = zwc.message_send(s, args.to, args.msg)
       if r.get("success"):
         print("Message sent successfully!")
+  elif args.to and args.msg:
+    r = zwc.message_send(s, args.to, args.msg)
+    if r.get("success"):
+      print("Message sent successfully!")
+  elif args.to or args.msg:
+    print("-t and -m must always go together")
+
   elif args.cron:
     show_recent(s, args.read) 
   else:
