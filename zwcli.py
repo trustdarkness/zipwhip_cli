@@ -103,7 +103,7 @@ def console_ui(s):
       if r.get("success"):
         print("Message sent successfully!")
 
-def show_recent(s, num="all", interactive=False):
+def show_recent(s, num="all", interactive=False, mark_read=False):
   """Get recent text messages and display them to the console.  
 
   Args:
@@ -115,11 +115,12 @@ def show_recent(s, num="all", interactive=False):
   """
   cl = zwc.conversation_list(s)
   print("New? | %14s | Last Msg: " % "Conv With:")
+  unread_ids = []
   for k,v in cl.items():
     if k == 'response':
       for i, d in enumerate(v):
         if num != "all" and i > num:
-          return
+          break
         # d looks like
         # { 'class' : 'java class name'
         #   'bcc' :
@@ -130,8 +131,13 @@ def show_recent(s, num="all", interactive=False):
         #   'lastContactName': 'name'
         #   'new' : True/False
         #   'lastMessageBody' : 'msg_body'
-        if d.get('new'):
+        #print(d)
+        #print(dir(zwc))
+        #print(help(zwc.message_read))
+        #sys.exit(0)        
+        if d.get('unreadCount') > 0:
           star = '*'
+          unread_ids.append(d.get('fingerprint'))
         else:
           star = ' ' 
         lastMsg = d.get('lastMessageBody').replace('\n', ' ')
@@ -162,11 +168,20 @@ def show_recent(s, num="all", interactive=False):
             print("%4s | %14s | %s" % (" ", " ", lines[line]))
         else:  
           print("%4s | %14s | %s" % (star, contact, lastMsg)) 
+       
         if interactive:
           if i > 1 and i % 19 == 0:
             yn = input("  <more> ")
+  
+  if mark_read:
+    for msg in unread_ids:
+      r = zwc.message_read(s, msg)
+      if r.get("success"):
+        print("Successfully marked msg %s as read." % msg)
+      else:
+        print(r,msg)
 
-             
+           
 if __name__ == "__main__":
   p = argparse.ArgumentParser()
   p.add_argument("-c", "--cron", action="store_true",
@@ -205,6 +220,8 @@ if __name__ == "__main__":
       "Password for zipwhip account to send from.  Beware bash history!",
       "If you don't supply a password, we will try to use a previously",
       "saved one or prompt you on the console."]))
+  p.add_argument("-R", "--markread", action="store_true", 
+    dest="mark_read", help="Mark all messages as read.  Must be used with -r.") 
 
   args = p.parse_args()
   if args.user and args.password:
@@ -241,6 +258,6 @@ if __name__ == "__main__":
     print("-t and -m must always go together")
 
   elif args.cron:
-    show_recent(s, args.read) 
+    show_recent(s, args.read, mark_read=args.mark_read) 
   else:
     console_ui(s) 
