@@ -1,8 +1,11 @@
 #!/usr/bin/python3
+from datetime import datetime
+from dateutil import parser 
 import subprocess
 import argparse
 import getpass
 import pickle
+import time
 import sys
 import os
 try:
@@ -10,6 +13,16 @@ try:
 except:
   print("Webcalls.py from the ZipWhip python API must be in your PYTHON_PATH")
   sys.exit(0)
+
+try:
+  import pytz # $ pip install pytz
+  from tzlocal import get_localzone # $ pip install tzlocal
+except:
+  print("pytz and tzlocal are required.  sudo easy_install3 pytz tzlocal")
+  sys.exit(0)
+
+# get local timezone    
+local_tz = get_localzone() 
 
 __author__ = "voytek@trustdarkness.com"
 __email__ = "voytek@trustdarkness.com"
@@ -114,13 +127,25 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
       for console reading.
   """
   cl = zwc.conversation_list(s)
-  print("New? | %14s | Last Msg: " % "Conv With:")
+  print("New? | %10s | %14s | Last Msg: " % ("Time:", "Conv With:"))
   unread_ids = []
   for k,v in cl.items():
     if k == 'response':
       for i, d in enumerate(v):
         if num != "all" and i > num:
           break
+        dt = parser.parse(d.get('lastMessageDate'))
+        dt = dt.replace(tzinfo=pytz.timezone('US/Pacific'))
+        now = datetime.now()
+        now = now.replace(tzinfo=local_tz)
+        ourTd = now - dt
+        if ourTd.days:
+          tstr = dt.astimezone(local_tz).strftime("%a %X")
+          tstr = tstr[:-3]
+        else:
+          tstr = dt.astimezone(local_tz).strftime("%X")
+          tstr = tstr[:-3]
+
         # d looks like
         # { 'class' : 'java class name'
         #   'bcc' :
@@ -148,26 +173,26 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
           contact = "%s %s" % \
             (d.get('lastContactFirstName'), d.get('lastContactLastName'))
         multiline = False
-        if len(lastMsg) > 56:
+        if len(lastMsg) > 43:
           multiline = True
           words = lastMsg.split()
-          num_lines = int((len(lastMsg)/56))+2
+          num_lines = int((len(lastMsg)/43))+2
           lines = [" "]*num_lines
           line = 0
           for word in words:
-            if len(lines[line]) + len(word) < 56:
+            if len(lines[line]) + len(word) < 43:
               lines[line] += "%s " % word
             else:
               line = line+1
               lines[line] += "%s " % word
         if multiline:
           line = 0
-          print("%4s | %14s | %s" % (star, contact, lines[line]))
+          print("%4s | %10s | %14s | %s" % (star, tstr, contact, lines[line]))
           while line < len(lines)-1:
             line = line+1
-            print("%4s | %14s | %s" % (" ", " ", lines[line]))
+            print("%4s | %10s | %14s | %s" % (" ", " ",  " ", lines[line]))
         else:  
-          print("%4s | %14s | %s" % (star, contact, lastMsg)) 
+          print("%4s | %10s | %14s | %s" % (star, tstr, contact, lastMsg)) 
        
         if interactive:
           if i > 1 and i % 19 == 0:
