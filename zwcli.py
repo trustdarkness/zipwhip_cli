@@ -8,6 +8,9 @@ import pickle
 import time
 import sys
 import os
+import zw_lib
+import zw_notify
+
 try:
   import WebCalls
 except:
@@ -43,48 +46,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-home = os.path.expanduser("~")
 
-SETTINGS_DIR = os.path.join(home, ".zwcli")
-SETTINGS_FILE = os.path.join(home, ".zwcli", "settings")
 zwc = WebCalls.WebCalls()
 
-def authenticate():
-  """
-  Authenticate to ZipWhip and get a session key.  Offer to save user
-  credentials locally (insecurely, for now).
-
-  Returns:
-    Session Key to be used in future operations.  Also optionally
-    saves login information to ~/.zw/settings
-  """
-  autologin = False
-  try:
-    with open(SETTINGS_FILE, 'rb') as f: 
-      u, p = pickle.load(f)
-      autologin = True
-  except:
-    u = input("Enter zipwhip number: ")
-    p = getpass.getpass("Enter password: ")
-  r = zwc.user_login(u,p)
-  s = r.get("response")
-  if r.get("success"):
-    print("You've successfully logged in.")
-    if not autologin:
-      print("Would you like to save this info? ")
-      print("THIS IS NOT SECURE and will allow anyone with access to this")
-      print("account on your computer the ability to send and recieve ")
-      print("messages via your ZipWhip account")
-      yn = input("Save? y/n ")
-      if yn.upper() == "Y":
-        subprocess.call(["mkdir", "-p", SETTINGS_DIR])
-        with open(SETTINGS_FILE, 'wb') as f:
-          pckl = (u, p)
-          pickle.dump(pckl, f)
-    return s 
-  else:
-    print("Bad username or password.")
-    sys.exit(0)
 
 def console_ui(s):
   """
@@ -116,7 +80,7 @@ def console_ui(s):
       if r.get("success"):
         print("Message sent successfully!")
 
-def show_recent(s, num="all", interactive=False, mark_read=False):
+def show_recent(s, num="all", interactive=False, mark_read=False, gui=False):
   """Get recent text messages and display them to the console.  
 
   Args:
@@ -126,7 +90,7 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
     interactive - boolean - if True, we'll break the screen every so often
       for console reading.
   """
-  cl = zwc.conversation_list(s)
+  cl = zwc.message_list(s)
   print("New? | %10s | %14s | Last Msg: " % ("Time:", "Conv With:"))
   unread_ids = []
   for k,v in cl.items():
@@ -134,7 +98,7 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
       for i, d in enumerate(v):
         if num != "all" and i > num:
           break
-        dt = parser.parse(d.get('lastMessageDate'))
+        dt = parser.parse(d.get('dateCreated'))
         dt = dt.replace(tzinfo=pytz.timezone('US/Pacific'))
         now = datetime.now()
         now = now.replace(tzinfo=local_tz)
@@ -160,18 +124,18 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
         #print(dir(zwc))
         #print(help(zwc.message_read))
         #sys.exit(0)        
-        if d.get('unreadCount') > 0:
+        if not d.get('isRead'):
           star = '*'
-          unread_ids.append(d.get('fingerprint'))
+          unread_ids.append(d.get('id'))
         else:
           star = ' ' 
-        lastMsg = d.get('lastMessageBody').replace('\n', ' ')
-        if not d.get('lastContactFirstName') and not \
-          d.get('lastContactLastName'):
-          contact = d.get('lastContactMobileNumber')
+        lastMsg = d.get('body').replace('\n', ' ')
+        if not d.get('fromName'):  # and not \
+          # d.get('lastContactLastName'):
+          contact = d.get('mobileNumber')
         else:
-          contact = "%s %s" % \
-            (d.get('lastContactFirstName'), d.get('lastContactLastName'))
+          contact = "%s" % \
+            d.get('fromName') #, d.get('lastContactLastName'))
         multiline = False
         if len(lastMsg) > 43:
           multiline = True
@@ -188,10 +152,16 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
         if multiline:
           line = 0
           print("%4s | %10s | %14s | %s" % (star, tstr, contact, lines[line]))
+          if gui:
+            if star == '*':
+              zw_notify.display_notification(d.get('id'), contact, "\n".join(lines))
           while line < len(lines)-1:
             line = line+1
             print("%4s | %10s | %14s | %s" % (" ", " ",  " ", lines[line]))
-        else:  
+        else: 
+          if gui:
+            if star == '*':
+              zw_notify.display_notification(d.get('id'), contact, lastMsg) 
           print("%4s | %10s | %14s | %s" % (star, tstr, contact, lastMsg)) 
        
         if interactive:
@@ -200,7 +170,7 @@ def show_recent(s, num="all", interactive=False, mark_read=False):
   
   if mark_read:
     for msg in unread_ids:
-      r = zwc.message_read(s, msg)
+      r = zwc.message_read(s,msg)
       if r.get("success"):
         print("Successfully marked msg %s as read." % msg)
       else:
@@ -246,7 +216,9 @@ if __name__ == "__main__":
       "If you don't supply a password, we will try to use a previously",
       "saved one or prompt you on the console."]))
   p.add_argument("-R", "--markread", action="store_true", 
-    dest="mark_read", help="Mark all messages as read.  Must be used with -r.") 
+    dest="mark_read", help="Mark all messages as read.  Must be used with -r.")
+  p.add_argument("-g", "--gui", action="store_true",
+    dest="gui", help="Display gui notifications") 
 
   args = p.parse_args()
   if args.user and args.password:
@@ -258,7 +230,7 @@ if __name__ == "__main__":
     print("-u and -p must always go together")
     sys.exit(0)
   else:
-    s = authenticate()
+    s = zw_lib.authenticate()
   if args.cron and args.send:
     if not args.to or not args.msg:
       print("-s must be combined with -t and -m at a minimum")
@@ -283,6 +255,6 @@ if __name__ == "__main__":
     print("-t and -m must always go together")
 
   elif args.cron:
-    show_recent(s, args.read, mark_read=args.mark_read) 
+    show_recent(s, args.read, mark_read=args.mark_read, gui=args.gui) 
   else:
     console_ui(s) 
