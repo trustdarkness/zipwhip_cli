@@ -25,12 +25,13 @@ text messages via a phone number.
 
 Usage is pretty simple:
 
+    $ zwcli -h
     usage: zwcli.py [-h] [-c] [-r READ] [-s] [-t TO] [-m MSG] [-u USER]
-                [-p PASSWORD]
+                [-p PASSWORD] [-R] [-g]
 
     optional arguments:
       -h, --help            show this help message and exit
-      -c, --cron            Run in 'cron' mode, or non-interactively... meant for   
+      -c, --cron            Run in 'cron' mode, or non-interactively... meant for
                             cron jobs or watch processes. Defaults to 'read' mode,
                             reading recent texts to standard out. Can be combined
                             with -s for send or -r for read,
@@ -57,7 +58,9 @@ Usage is pretty simple:
                             Password for zipwhip account to send from. Beware bash
                             history! If you don't supply a password, we will try
                             to use a previously saved one or prompt you on the
-                            console.    
+                            console.
+      -R, --markread        Mark all messages as read. Must be used with -r.
+      -g, --gui             Display gui notifications
 
 
 Examples:
