@@ -79,32 +79,25 @@ Examples:
         2. Send a text
  
     selection: 1
-    New? | From:      | Msg: 
-         | 651XXXXXXX | Not 4 hours big dude! Maybe 20 min with a real connection.
-         | 312XXXXXXX | testing 
-         | 773XXXXXXX | again.
-         | 312XXXXXXX | Sure
-         | 630XXXXXXX | no problem... we'll talk soon.
-         | 773XXXXXXX | -=call=-  Outgoing Phone Call Duration: 60 seconds
-         | 630XXXXXXX | -=call=-  Outgoing Phone Call Duration: 14 seconds
-         | 805XXXXXXX | -=call=-  Outgoing Phone Call Duration: 20 seconds
-         | 630XXXXXXX | -=call=-  Missed Phone Call
-         | 630XXXXXXX | Thanks
-         | 773XXXXXXX |  sorry for the delayed response... didn't see your message 
-         |            |  right away
-         |            |  
-         |            |  
-         |      20000 |  .signup verify 9309 Zipwhip installation complete! To 
-         |            |  send, receive, and view all your texts complete 
-         |            |  registration from your computer at zipwhip.com 
-         |            |  
-         |        456 |  Free T-Mobile Msg: $60.00 has been added to your account. 
-         |            |  Your new balance is $61.00. Thanks for refilling! 
-         |            |  
-         | 952XXXXXXX |  i think we'll have a better idea about january
-         | 708XXXXXXX | Nooo
-         | 773XXXXXXX | Another test
-         | 7084850010 | -=call=-  Incoming Phone Call Duration: 29 seconds
+    New? |      Time: |     Conv With: | Last Msg:
+         |      09:14 |     651XXXXXXX |  cds are in the mail... will try to call
+         |            |                |  you from the airport tonight
+         |            |                |
+      *  |      09:13 |            456 |  Free T-Mobile Msg: $69.59 has been added
+         |            |                |  to your account. Your new balance is
+         |            |                |  $70.00. Thanks for refilling!
+         |            |                |
+         |      09:06 |     8009378997 |  -=call=- Outgoing Phone Call Duration:
+         |            |                |  276 seconds
+         |            |                |
+         |      09:04 |     8009378997 |  -=call=- Outgoing Phone Call Duration: 99
+         |            |                |  seconds
+         |            |                |
+         |      08:23 |            456 |  Free T-Mobile Msg: Your payment for your
+         |            |                |  T-Mobile plan is past due so your plan is
+         |            |                |  inactive. Visit my.t-mobile.com/billing
+         |            |                |  to make a payment to get your
+         |            |                |
       <more> 
 
 
@@ -128,15 +121,53 @@ Examples:
       to: 773XXXXXXX
     Confirm? y/n y
     Message sent successfully!
+    
++++ snip +++
+
+    $ zwcli -c
+    
+    You've successfully logged in.
+    New? |      Time: |     Conv With: | Last Msg:
+         |      09:14 |     651XXXXXXX |  cds are in the mail... will try to call
+         |            |                |  you from the airport tonight
+         |            |                |
+      *  |      09:13 |            456 |  Free T-Mobile Msg: $69.59 has been added
+         |            |                |  to your account. Your new balance is
+         |            |                |  $70.00. Thanks for refilling!
+         |            |                |
+         |      09:06 |     8009378997 |  -=call=- Outgoing Phone Call Duration:
+         |            |                |  276 seconds
+         |            |                |
+         |      09:04 |     8009378997 |  -=call=- Outgoing Phone Call Duration: 99
+         |            |                |  seconds
+         |            |                |
+         |      08:23 |            456 |  Free T-Mobile Msg: Your payment for your
+         |            |                |  T-Mobile plan is past due so your plan is
+         |            |                |  inactive. Visit my.t-mobile.com/billing
+         |            |                |  to make a payment to get your
+         |            |                |
+
 
 
 TODOS:
 ======
 
-I'm open to feature requests, but the next things *I* would at least like to
-work on implementing:
+Full GUI support.  GUI notifications are now supported.
 
-- ncurses ui (similar to mcabber)
-- encryption using socialist millionaire
+To run this, use the command line option -g… you’ll still see the normal command line output, but additionally, when you get new messages, they will display a notification in your desktop environment.
+
+Now, you may ask, how does this help me if I’m running it manually on the command line?
+
+I frequently run this in a watch loop, which is essentially like having a running daemon (but way, way, dumber).
+
+Now, if I forget to look at the terminal window where I’m running it, I still get notified of new messages.
+
+So, how I run it… to check for messages every 5 minutes, and mark them as read after displaying the notification, is to run the following:
+
+    watch -n300 python zwcli.py -c -g -R
+
+If you want to keep getting new notifications every 5 minutes until you explicitly mark as read, just omit the -R.
+
+I’ll be making a proper daemon that you can interact with soon(ish).
 
 If you've stumbled across this and use it, please let me know!
