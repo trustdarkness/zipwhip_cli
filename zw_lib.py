@@ -49,6 +49,14 @@ def mark_read(msg_id):
   s = authenticate()
   zwh.message_read(s,msg_id)
 
+def send_message(to, body):
+  s = authenticate()
+  r = zwh.message_send(s, to, body)
+  if r.get("success"):
+    return "Message sent successfully!"
+  else:
+    return "Sending failed."
+
 class message:
   def __init__(self, mid, mbody, mfromNum, mts, mfromName=None):
     self.mid = mid
