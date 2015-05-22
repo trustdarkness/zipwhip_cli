@@ -23,8 +23,8 @@ def newmsg(buf):
 def markread(buf):
   s = zw_lib.authenticate()
   zw_lib.show_recent(s, 40, False, True, False)
-  notify2.init("ZipWhip")
-  n = notify2.Notification("ZipWhip", 
+  notify2.init("Zipwhip")
+  n = notify2.Notification("Zipwhip", 
         "All messages marked read", 
         "notification-message-im")
   n.show()
@@ -71,8 +71,8 @@ class EntryWindow(Gtk.Window):
 def sendMessage(num, msg):
   print("sending message to %s: %s" % (num, msg))
   r = zw_lib.send_message(num, msg)
-  notify2.init("ZipWhip")
-  n = notify2.Notification("ZipWhip", r, "notification-message-im")
+  notify2.init("Zipwhip")
+  n = notify2.Notification("Zipwhip", r, "notification-message-im")
   n.show()
 
 def background_run():
