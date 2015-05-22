@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import wx
-import zw_send
+import zw_respond
 import sys
 
 class zwApp(wx.App):
@@ -9,7 +9,7 @@ class zwApp(wx.App):
       return True
  
     def create_window(self):
-        self.main = zw_send.create(None, self.mfromName, self.mfromNum, self.msg)
+        self.main = zw_respond.create(None, self.mfromName, self.mfromNum, self.msg)
         self.main.Show()
         self.SetTopWindow(self.main)
         return True
