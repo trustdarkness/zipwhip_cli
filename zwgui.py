@@ -1,18 +1,31 @@
 #!/usr/bin/python3
-
+from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import Gtk, GLib, GObject
 from gi.repository import AppIndicator3 as appindicator
 import zw_lib
 import notify2
 import time
 import threading
+import dbus
+import dbus.service
+
 
 def menuitem_response(w, buf):
   print(buf)
 
 def check(buf):
-  s = zw_lib.authenticate()
-  zw_lib.show_recent(s, 40, False, False, True)
+  print("checking new messages")
+  new = zw_lib.get_recent(s, 30)
+  print("got %d recent msgs" % len(new))
+  #notify2.init("Zipwhip")
+  
+  for row in new:
+    if row[1] == "*":
+      num = row[3]
+      date = row[2]
+      msg = row[4].strip()
+      n = notify2.Notification("New SMS from: %s" % num, msg, 'phone')
+      n.show()
 
 def newmsg(buf):
   win = EntryWindow()
@@ -34,9 +47,8 @@ def markread(buf):
   notify2.init("Zipwhip")
   n = notify2.Notification("Zipwhip", 
         "All messages marked read", 
-        "notification-message-im")
+        "phone")
   n.show()
-
 
 class EntryWindow(Gtk.Window):
 
@@ -45,7 +57,7 @@ class EntryWindow(Gtk.Window):
     self.set_size_request(250, 150)
     self.set_border_width(10)
     self.set_position(Gtk.WindowPosition.CENTER)
-
+    self.set_default_icon_name('phone')
     self.timeout_id = None
 
     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -80,21 +92,22 @@ def sendMessage(num, msg):
   print("sending message to %s: %s" % (num, msg))
   r = zw_lib.send_message(num, msg)
   notify2.init("Zipwhip")
-  n = notify2.Notification("Zipwhip", r, "notification-message-im")
+  n = notify2.Notification("Zipwhip", r, "phone")
   n.show()
 
 class CellRendererTextWindow(Gtk.Window):
 
     def __init__(self, listitems):
-        Gtk.ScrolledWindow.__init__(self, title="CellRendererText Example")
+        Gtk.ScrolledWindow.__init__(self, title="Zipwhip: Recent SMS messages")
         self.set_default_size(500, 600)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_vexpand(True)
-        liststore = Gtk.ListStore(str, str)
+        liststore = Gtk.ListStore(str, str, str)
         for row in listitems:
           num = row[3]
+          date = row[2]
           msg = row[4].strip()
-          liststore.append([num, msg])
+          liststore.append([num, date, msg])
 
         treeview = Gtk.TreeView(model=liststore)
         treeview.set_rules_hint( True )
@@ -102,13 +115,17 @@ class CellRendererTextWindow(Gtk.Window):
         column_text = Gtk.TreeViewColumn("From:", renderer_text, text=0)
 
         treeview.append_column(column_text)
+        
+        renderer_date = Gtk.CellRendererText()
+        column_rtext = Gtk.TreeViewColumn("Date:", renderer_date, text=1)
+        treeview.append_column(column_rtext)
 
         renderer_editabletext = Gtk.CellRendererText()
         renderer_editabletext.set_property("wrap_mode", 2)
         renderer_editabletext.set_property("wrap_width", 300)
 
         column_editabletext = Gtk.TreeViewColumn("SMS Message:",
-            renderer_editabletext, text=1)
+            renderer_editabletext, text=2)
         treeview.append_column(column_editabletext)
 
         renderer_editabletext.connect("edited", self.text_edited)
@@ -121,16 +138,50 @@ class CellRendererTextWindow(Gtk.Window):
         self.liststore[path][1] = text
 
 
+class MyDBUSService(dbus.service.Object):
+    def __init__(self):
+        bus_name = dbus.service.BusName('org.my.test', bus=dbus.SessionBus())
+        dbus.service.Object.__init__(self, bus_name, '/org/my/test')
+
+    @dbus.service.method('org.my.test')
+    def hello(self):
+        """returns the string 'Hello, World!'"""
+        return "Hello, World!"
+
+    @dbus.service.method('org.my.test')
+    def string_echo(self, s):
+        """returns whatever is passed to it"""
+        return s
+
+    @dbus.service.method('org.my.test')
+    def Quit(self):
+        """removes this object from the DBUS connection and exits"""
+        self.remove_from_connection()
+        Gtk.main_quit()
+        return
+
 def background_run():
   while True:
     time.sleep(100)
-    zw_lib.show_recent(s, 40, False, False, True)
+    check(None) 
 
 def app_main():
   thread = threading.Thread(target=background_run)
+  #thread2 = threading.Thread(target=dbus_loop)
   thread.daemon = True
+  #thread2.daemon = True
+  #thread2.start()
   thread.start()
 
+def dbus_loop():
+  DBusGMainLoop(set_as_default=True)
+  myservice = MyDBUSService()
+ #  DBusGMainLoop(set_as_default=True)
+ # loop = GObject.MainLoop()
+ # dbus_loop = dbus.mainloop.glib.DBusGMainLoop()
+ # dbus.set_default_main_loop(dbus_loop)
+ # loop.run()
+ 
 if __name__ == "__main__":
   s = zw_lib.authenticate()
   ind = appindicator.Indicator.new(
@@ -139,7 +190,13 @@ if __name__ == "__main__":
                         appindicator.IndicatorCategory.APPLICATION_STATUS,
                        )
   ind.set_status (appindicator.IndicatorStatus.ACTIVE)
-  ind.set_attention_icon ("indicator-messages-new")
+  ind.set_attention_icon ("phone")
+#  dbus_loop = dbus.mainloop.glib.DBusGMainLoop()
+
+#  mainLoop = GObject.MainLoop()
+
+#  dbus_system = dbus.SystemBus(mainloop=dbus_loop)
+#  dbus.set_default_main_loop(dbus_loop)
 
   # create a menu
   menu = Gtk.Menu()
@@ -153,7 +210,7 @@ if __name__ == "__main__":
     elif i == 2:
       buf = "Mark all read"
     elif i == 3:
-      buf = "View all messages"
+      buf = "View recent messages"
 
     menu_items = Gtk.MenuItem(buf)
     if i == 0:
@@ -180,8 +237,7 @@ if __name__ == "__main__":
   menu_items.show()
 
   ind.set_menu(menu)
-  zw_lib.show_recent(s, 40, False, False, True)
-
+  check(None)
   app_main()
   Gtk.main()
 

@@ -29,6 +29,9 @@ home = os.path.expanduser("~")
 SETTINGS_DIR = os.path.join(home, ".zwhli")
 SETTINGS_FILE = os.path.join(home, ".zwhli", "settings")
 
+def get_handle():
+  return zwh
+
 def authenticate():
   """
   Authenticate to ZipWhip and get a session key.  Offer to save user
@@ -77,6 +80,77 @@ def send_message(to, body):
     return "Message sent successfully!"
   else:
     return "Sending failed."
+
+def get_recent(s, num="all"):
+  """Get recent text messages and display them to the console.  
+
+  Args:
+    s - String - session key
+    num - int - number of recent messages to show.  If not specified, we'll 
+      show them all.
+    interactive - boolean - if True, we'll break the screen every so often
+      for console reading.
+  """
+  cl = zwh.message_list(s)
+  unread_ids = []
+  msgs = []
+  it = 30
+  if num == 'all':
+    num = 100000000
+  while cl['total'] and it <= num:
+    print("success: %s total: %s size: %s start: %d" % (cl['success'], cl['total'], cl['size'], it))
+    for k,v in cl.items():
+      if k == 'total':
+        total = v
+      elif k == 'response':
+        for i, d in enumerate(v):
+          if num != "all" and i > num:
+            break
+          dt = parser.parse(d.get('dateCreated'))
+          dt = dt.replace(tzinfo=pytz.timezone('US/Pacific'))
+          now = datetime.now()
+          now = now.replace(tzinfo=local_tz)
+          ourTd = now - dt
+          if ourTd.days:
+            tstr = dt.astimezone(local_tz).strftime("%a %b %-d %Y %X")
+            tstr = tstr[:-3]
+          else:
+            tstr = dt.astimezone(local_tz).strftime("%c")
+            tstr = tstr[:-3]
+
+          # d looks like
+          # { 'class' : 'java class name'
+          #   'bcc' :
+          #   'lastUpdated' : (timestamp)
+          #   'address' : 'ptn:/phone_number'
+          #   ...
+          #   'lastContactMobileNumber' : 'phone_number'
+          #   'lastContactName': 'name'
+          #   'new' : True/False
+          #   'lastMessageBody' : 'msg_body'
+          #print(d)
+          #print(dir(zwh))
+          #print(help(zwh.message_read))
+          #sys.exit(0)        
+          if not d.get('isRead'):
+            star = '*'
+            unread_ids.append(d.get('id'))
+          else:
+            star = ' ' 
+          lastMsg = d.get('body').replace('\n', ' ')
+          if not d.get('fromName'):  # and not \
+            # d.get('lastContactLastName'):
+            contact = d.get('mobileNumber')
+          else:
+            contact = "%s" % \
+              d.get('fromName') #, d.get('lastContactLastName'))
+          multiline = False
+          #print("%4s | %10s | %14s | %s" % (star, tstr, contact, lines[line]))
+          msgs.append([d.get('id'),star,tstr,contact,lastMsg])
+    print("calling with start=%s total=%s" % (it, total))
+    cl = zwh.message_list(s, start=it)
+    it = it + total
+  return msgs
 
 def show_recent(s, num="all", interactive=False, mark_read=False, gui=False):
   """Get recent text messages and display them to the console.  
