@@ -2,6 +2,7 @@ import WebCalls
 import pickle
 import getpass
 import subprocess
+import keyring
 import os
 import sys
 import zw_notify
@@ -27,8 +28,8 @@ local_tz = get_localzone()
 
 zwh = WebCalls.WebCalls()
 home = os.path.expanduser("~")
-SETTINGS_DIR = os.path.join(home, ".zwhli")
-SETTINGS_FILE = os.path.join(home, ".zwhli", "settings")
+SETTINGS_DIR = os.path.join(home, ".zwcli")
+SETTINGS_FILE = os.path.join(home, ".zwcli", "settings")
 
 def get_handle():
   return zwh
@@ -45,7 +46,10 @@ def authenticate():
   autologin = False
   try:
     with open(SETTINGS_FILE, 'rb') as f: 
+      # p is here for historical reasons only, we store the password in the
+      # system keychain now.
       u, p = pickle.load(f)
+      p = keyring.get_password("Zipwhip", u)
       autologin = True
   except:
     u = input("Enter zipwhip number: ")
@@ -56,13 +60,13 @@ def authenticate():
     print("You've successfully logged in.")
     if not autologin:
       print("Would you like to save this info? ")
-      print("THIS IS NOT SECURE and will allow anyone with access to this")
-      print("account on your computer the ability to send and recieve ")
-      print("messages via your ZipWhip account")
       yn = input("Save? y/n ")
       if yn.upper() == "Y":
+        success = keyring.set_password("Zipwhip", u, p)   
+        # TODO (voytek): make this more pythonic)
         subprocess.call(["mkdir", "-p", SETTINGS_DIR])
         with open(SETTINGS_FILE, 'wb') as f:
+          p = "passwordstoredinsystemkeychain"
           pckl = (u, p)
           pickle.dump(pckl, f)
     return s 
