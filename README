@@ -1,6 +1,12 @@
 zipwhip_cli
 ===========
 
+NEW GUI VERSION!  zwcli will still work as a command line only client, but 
+if you would like a full fledged linux GUI please check out install with
+screenshots here:
+
+http://trustdarkness.com/wordpress/zipwhip-for-linux-new-gui-version/
+
 This is a command line interface to the ZipWhip cloud texting service.
 
 A short backstory:  I hate typing on my phone.  Thus, when Google Voice
