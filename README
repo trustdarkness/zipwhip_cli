@@ -158,22 +158,16 @@ Examples:
 TODOS:
 ======
 
-Full GUI support.  GUI notifications are now supported.
+Optionally interface with other backends?  I'd like to move to using ubuntu 
+touch on my phone full time instead of Android, but replicating this 
+functionality is pretty important to me.  With that in mind...
 
-To run this, use the command line option -g… you’ll still see the normal command line output, but additionally, when you get new messages, they will display a notification in your desktop environment.
-
-Now, you may ask, how does this help me if I’m running it manually on the command line?
-
-I frequently run this in a watch loop, which is essentially like having a running daemon (but way, way, dumber).
-
-Now, if I forget to look at the terminal window where I’m running it, I still get notified of new messages.
-
-So, how I run it… to check for messages every 5 minutes, and mark them as read after displaying the notification, is to run the following:
-
-    watch -n300 python zwcli.py -c -g -R
-
-If you want to keep getting new notifications every 5 minutes until you explicitly mark as read, just omit the -R.
-
-I’ll be making a proper daemon that you can interact with soon(ish).
+- Add multiple backends
+-- Zipwhip + Android
+-- Google Voice + Android (maybe)?
+-- Owncloud + Ubuntu Touch (would require writing an ubuntu touch app and an
+owncloud texting app... but if I have time to do that):
+-- Owncloud + Android
+-- Owncloud + Firefox OS
 
 If you've stumbled across this and use it, please let me know!
