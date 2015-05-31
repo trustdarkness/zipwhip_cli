@@ -3,6 +3,7 @@ import pickle
 import getpass
 import subprocess
 import os
+import sys
 import zw_notify
 from datetime import datetime
 from dateutil import parser
