@@ -49,14 +49,14 @@ def check(buf, num=30):
       n = notify2.Notification("New SMS from: %s" % num, msg, 'phone')
       n.show()
 
-def newmsg(buf):
+def newmsg(buf, to=None):
   """
   Create a window to send a new message.
  
   Args:
     buf - buffer passed from the menu object
   """
-  win = EntryWindow()
+  win = EntryWindow(to)
   win.connect("delete-event", Gtk.main_quit)
   win.show_all()
   Gtk.main()
@@ -110,7 +110,7 @@ def sendMessage(num, msg):
 class EntryWindow(Gtk.Window):
   """Window to send a message."""
 
-  def __init__(self):
+  def __init__(self, to=None):
     """ 
     Initialize class.
     """
@@ -125,7 +125,10 @@ class EntryWindow(Gtk.Window):
     self.add(vbox)
 
     self.numentry = Gtk.Entry()
-    self.numentry.set_text("Enter Phone Number")
+    if to:
+      self.numentry.set_text(to)
+    else:
+      self.numentry.set_text("Enter Phone Number")
     vbox.pack_start(self.numentry, True, True, 0)
  
     self.msgentry = Gtk.Entry()
@@ -162,41 +165,91 @@ class CellRendererTextWindow(Gtk.Window):
     Args:
       listitmes - the things to list in the window.
     """
-    Gtk.ScrolledWindow.__init__(self, title="Zipwhip: Recent SMS messages")
-    self.set_default_size(500, 600)
+    Gtk.Window.__init__(self, title="Zipwhip: Recent SMS messages")
+    self.set_border_width(10)
+    #Setting up the self.grid in which the elements are to be positionned
+    self.grid = Gtk.Grid()
+    self.grid.set_column_homogeneous(True)
+    self.grid.set_row_homogeneous(True)
+    self.grid.set_row_spacing(10)
+    self.grid.set_column_spacing(5)
+
+    self.set_default_size(600, 700)
     self.set_position(Gtk.WindowPosition.CENTER)
     self.set_vexpand(True)
-    liststore = Gtk.ListStore(str, str, str)
+
+    liststore = Gtk.ListStore(str, str, str, str, str)
+
     for row in listitems:
+      new = row[1]
       num = row[3]
       date = row[2]
       msg = row[4].strip()
-      liststore.append([num, date, msg])
+      liststore.append([new, num, date, msg, row[0]])
 
-    treeview = Gtk.TreeView(model=liststore)
-    treeview.set_rules_hint( True )
+    self.treeview = Gtk.TreeView(model=liststore)
+    self.treeview.set_rules_hint( True )
+
+    renderer_star = Gtk.CellRendererText()
+    column_stext = Gtk.TreeViewColumn("New?", renderer_star, text=0)
+    self.treeview.append_column(column_stext)
+
+
     renderer_text = Gtk.CellRendererText()
-    column_text = Gtk.TreeViewColumn("From:", renderer_text, text=0)
-
-    treeview.append_column(column_text)
+    column_text = Gtk.TreeViewColumn("From:", renderer_text, text=1)
+    self.treeview.append_column(column_text)
        
     renderer_date = Gtk.CellRendererText()
-    column_rtext = Gtk.TreeViewColumn("Date:", renderer_date, text=1)
-    treeview.append_column(column_rtext)
+    column_rtext = Gtk.TreeViewColumn("Date:", renderer_date, text=2)
+    self.treeview.append_column(column_rtext)
 
     renderer_editabletext = Gtk.CellRendererText()
     renderer_editabletext.set_property("wrap_mode", 2)
     renderer_editabletext.set_property("wrap_width", 300)
 
     column_editabletext = Gtk.TreeViewColumn("SMS Message:",
-      renderer_editabletext, text=2)
+      renderer_editabletext, text=3)
 
-    treeview.append_column(column_editabletext)
-    scrolled = Gtk.ScrolledWindow()
-    scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-    scrolled.add(treeview)
-    self.add(scrolled)
+    self.buttons = list()
+    for prog_language in ["New", "Reply", "Mark Read", "Delete",]:
+      button = Gtk.Button(prog_language)
+      self.buttons.append(button)
+      button.connect("clicked", self.on_selection_button_clicked)
 
+    self.treeview.append_column(column_editabletext)
+
+    select = self.treeview.get_selection()
+    select.connect("changed", self.on_tree_selection_changed)
+
+    self.scrolled = Gtk.ScrolledWindow()
+    self.scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+    self.scrolled.add(self.treeview)
+    self.grid.attach(self.scrolled, 0, 0, 8, 10)
+    self.grid.attach_next_to(self.buttons[0], self.scrolled, Gtk.PositionType.BOTTOM, 1, 1)
+    for i, button in enumerate(self.buttons[1:]):
+      self.grid.attach_next_to(button, self.buttons[i], Gtk.PositionType.RIGHT, 1, 1)
+    #scrolled.add(treeview)
+    self.add(self.grid)
+
+  def on_tree_selection_changed(self, selection):
+    model, treeiter = selection.get_selected()
+    self.selected = model[treeiter]
+    print(model[treeiter][1])
+    if treeiter != None:
+      print("You selected %s, msg id %s" % (model[treeiter][0], model[treeiter][3]))
+
+  def on_selection_button_clicked(self, widget):
+    """Called on any of the button clicks"""
+    action = widget.get_label()
+    if action == "New":
+      newmsg(None)
+    elif action == "Reply":
+      newmsg(None, self.selected[1])
+    elif action == "Mark Read":
+      # TODO (voytek): display bold, then not bold.
+      zw_lib.mark_read(self.selected[4])
+      self.selected[0] = " "  
+      
 
 def background_run(refresh_interval=100):
   """
@@ -218,7 +271,13 @@ def app_main():
   thread.start()
 
 if __name__ == "__main__":
-  s = zw_lib.authenticate()
+  try:
+    s = zw_lib.authenticate()
+  except:
+    notity2.init("Zipwhip")
+    notify2.Notification("Zipwhip", 
+      "Error: Can't connect to Zipwhip.  Exiting.", "phone")
+    sys.exit(0)
   ind = appindicator.Indicator.new(
                         "zipwhip-client",
                         "phone",
