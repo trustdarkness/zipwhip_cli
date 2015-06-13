@@ -178,7 +178,7 @@ class CellRendererTextWindow(Gtk.Window):
     self.grid.set_column_homogeneous(True)
     self.grid.set_row_homogeneous(True)
     self.grid.set_row_spacing(10)
-    self.grid.set_column_spacing(5)
+    self.grid.set_column_spacing(10)
 
     self.set_default_size(600, 700)
     self.set_position(Gtk.WindowPosition.CENTER)
@@ -189,11 +189,15 @@ class CellRendererTextWindow(Gtk.Window):
     for row in listitems:
       new = row[1]
       if new =='*':
-        num = boldify(row[3])
+     
+        num = boldify(row[5])
         date = boldify(row[2])
         msg = boldify(row[4].strip())
       else:
-        num = row[3]
+        if not row[5].strip():
+          num = row[3]
+        else:
+          num = row[5]
         date = row[2]
         msg = row[4].strip()
       liststore.append([num, date, msg, row[0]])
@@ -254,7 +258,7 @@ class CellRendererTextWindow(Gtk.Window):
     if action == "New":
       newmsg(None)
     elif action == "Reply":
-      newmsg(None, self.selected[1])
+      newmsg(None, self.selected[0])
     elif action == "Mark Read":
       zw_lib.mark_read(self.selected[3])
       self.selected[0] = deboldify(self.selected[0])
@@ -290,7 +294,7 @@ if __name__ == "__main__":
   try:
     s = zw_lib.authenticate()
   except:
-    notity2.init("Zipwhip")
+    notify2.init("Zipwhip")
     notify2.Notification("Zipwhip", 
       "Error: Can't connect to Zipwhip.  Exiting.", "phone")
     sys.exit(0)

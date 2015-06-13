@@ -26,6 +26,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+debug = 1
 
 try:
   import WebCalls
@@ -48,6 +49,7 @@ zwh = WebCalls.WebCalls()
 home = os.path.expanduser("~")
 SETTINGS_DIR = os.path.join(home, ".zwcli")
 SETTINGS_FILE = os.path.join(home, ".zwcli", "settings")
+CONTACTS_FILE = os.path.join(SETTINGS_DIR, "contacts")
 
 def get_handle():
   return zwh
@@ -87,6 +89,15 @@ def authenticate():
           p = "passwordstoredinsystemkeychain"
           pckl = (u, p)
           pickle.dump(pckl, f)
+    try:
+      with open(CONTACTS_FILE, 'rb') as f:
+        c = pickle.load(f)
+    except:
+      with open(CONTACTS_FILE, 'wb') as f:
+        c = {}
+        pickle.dump(c, f)
+
+        
     return s 
   else:
     print("Bad username or password.")
@@ -102,11 +113,25 @@ def delete(msg_id):
 
 def send_message(to, body):
   s = authenticate()
+  if (len(to) != 10): # TODO: make this less hackish
+    with open(CONTACTS_FILE, 'rb') as f:
+      c = pickle.load(f)
+    to = c[to]
+  if debug:
+    print("sending message to %s" % to)
   r = zwh.message_send(s, to, body)
   if r.get("success"):
     return "Message sent successfully!"
   else:
     return "Sending failed."
+
+def get_contacts():
+  with open(CONTACTS_FILE, "rb") as f:
+    return pickle.load(f)
+ 
+def save_contacts(contacts):
+  with open(CONTACTS_FILE, "wb") as f:
+    pickle.dump(contacts, f)
 
 def get_recent(s, num="all"):
   """Get recent text messages and display them to the console.  
@@ -158,13 +183,18 @@ def get_recent(s, num="all"):
           #print(d)
           #print(dir(zwh))
           #print(help(zwh.message_read))
-          #sys.exit(0)        
+          #sys.exit(0)      
+          with open(CONTACTS_FILE, 'rb') as f:
+            c = pickle.load(f)  
           if not d.get('isRead'):
             star = '*'
             unread_ids.append(d.get('id'))
           else:
             star = ' ' 
           lastMsg = d.get('body').replace('\n', ' ')
+          firstname = d.get('firstName')
+          lastname = d.get('lastName')
+          name = firstname+" "+lastname
           if not d.get('fromName'):  # and not \
             # d.get('lastContactLastName'):
             contact = d.get('mobileNumber')
@@ -172,9 +202,12 @@ def get_recent(s, num="all"):
             contact = "%s" % \
               d.get('fromName') #, d.get('lastContactLastName'))
           multiline = False
+          c[name] = contact
+
           #print("%4s | %10s | %14s | %s" % (star, tstr, contact, lines[line]))
-          msgs.append([d.get('id'),star,tstr,contact,lastMsg])
+          msgs.append([d.get('id'),star,tstr,contact,lastMsg, name])
     print("calling with start=%s total=%s" % (it, total))
+    save_contacts(c)
     cl = zwh.message_list(s, start=it)
     it = it + total
   return msgs
