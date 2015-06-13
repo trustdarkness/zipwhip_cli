@@ -95,6 +95,10 @@ def authenticate():
 def mark_read(msg_id):
   s = authenticate()
   zwh.message_read(s,msg_id)
+ 
+def delete(msg_id):
+  s = authenticate()
+  zwh.message_delete(s,msg_id)
 
 def send_message(to, body):
   s = authenticate()

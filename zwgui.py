@@ -260,6 +260,12 @@ class CellRendererTextWindow(Gtk.Window):
       self.selected[0] = deboldify(self.selected[0])
       self.selected[1] = deboldify(self.selected[1])
       self.selected[2] = deboldify(self.selected[2])
+    elif action == "Delete":
+      zw_lib.delete(self.selected[3])
+      model, paths = self.treeview.get_selection().get_selected_rows()
+      for path in paths:
+        iter = model.get_iter(path)
+        model.remove(iter)
 
 def background_run(refresh_interval=100):
   """
