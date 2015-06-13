@@ -28,6 +28,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+def boldify(string):
+  return '<b>'+string+'</b>'
+
+def deboldify(string):
+  return string[3:][:-4]
+
 def check(buf, num=30):
   """
   Get the first X new messages.  Defaults to 30.
@@ -178,45 +184,49 @@ class CellRendererTextWindow(Gtk.Window):
     self.set_position(Gtk.WindowPosition.CENTER)
     self.set_vexpand(True)
 
-    liststore = Gtk.ListStore(str, str, str, str, str)
+    liststore = Gtk.ListStore(str, str, str, str)
 
     for row in listitems:
       new = row[1]
-      num = row[3]
-      date = row[2]
-      msg = row[4].strip()
-      liststore.append([new, num, date, msg, row[0]])
+      if new =='*':
+        num = boldify(row[3])
+        date = boldify(row[2])
+        msg = boldify(row[4].strip())
+      else:
+        num = row[3]
+        date = row[2]
+        msg = row[4].strip()
+      liststore.append([num, date, msg, row[0]])
 
     self.treeview = Gtk.TreeView(model=liststore)
     self.treeview.set_rules_hint( True )
 
-    renderer_star = Gtk.CellRendererText()
-    column_stext = Gtk.TreeViewColumn("New?", renderer_star, text=0)
-    self.treeview.append_column(column_stext)
+    #star = Gtk.CellRendererText()
+    #star_col = Gtk.TreeViewColumn("New?", star, markup=0)
+    #self.treeview.append_column(star_col)
 
 
-    renderer_text = Gtk.CellRendererText()
-    column_text = Gtk.TreeViewColumn("From:", renderer_text, text=1)
-    self.treeview.append_column(column_text)
+    sender = Gtk.CellRendererText()
+    sender_col = Gtk.TreeViewColumn("From:", sender, markup=0)
+    self.treeview.append_column(sender_col)
        
-    renderer_date = Gtk.CellRendererText()
-    column_rtext = Gtk.TreeViewColumn("Date:", renderer_date, text=2)
-    self.treeview.append_column(column_rtext)
+    date = Gtk.CellRendererText()
+    date_col = Gtk.TreeViewColumn("Date:", date, markup=1)
+    self.treeview.append_column(date_col)
 
-    renderer_editabletext = Gtk.CellRendererText()
-    renderer_editabletext.set_property("wrap_mode", 2)
-    renderer_editabletext.set_property("wrap_width", 300)
+    msg = Gtk.CellRendererText()
+    msg.set_property("wrap_mode", 2)
+    msg.set_property("wrap_width", 300)
 
-    column_editabletext = Gtk.TreeViewColumn("SMS Message:",
-      renderer_editabletext, text=3)
+    msg_col = Gtk.TreeViewColumn("SMS Message:", msg, markup=2)
 
     self.buttons = list()
-    for prog_language in ["New", "Reply", "Mark Read", "Delete",]:
-      button = Gtk.Button(prog_language)
+    for action in ["New", "Reply", "Mark Read", "Delete",]:
+      button = Gtk.Button(action)
       self.buttons.append(button)
       button.connect("clicked", self.on_selection_button_clicked)
 
-    self.treeview.append_column(column_editabletext)
+    self.treeview.append_column(msg_col)
 
     select = self.treeview.get_selection()
     select.connect("changed", self.on_tree_selection_changed)
@@ -246,10 +256,10 @@ class CellRendererTextWindow(Gtk.Window):
     elif action == "Reply":
       newmsg(None, self.selected[1])
     elif action == "Mark Read":
-      # TODO (voytek): display bold, then not bold.
-      zw_lib.mark_read(self.selected[4])
-      self.selected[0] = " "  
-      
+      zw_lib.mark_read(self.selected[3])
+      self.selected[0] = deboldify(self.selected[0])
+      self.selected[1] = deboldify(self.selected[1])
+      self.selected[2] = deboldify(self.selected[2])
 
 def background_run(refresh_interval=100):
   """
