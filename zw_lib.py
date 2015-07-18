@@ -121,7 +121,7 @@ def send_message(to, body):
     print("sending message to %s" % to)
   r = zwh.message_send(s, to, body)
   if r.get("success"):
-    return "Message sent successfully!"
+    return 1
   else:
     return "Sending failed."
 
@@ -150,7 +150,9 @@ def get_recent(s, num="all"):
   if num == 'all':
     num = 100000000
   while cl['total'] and it <= num:
-    print("success: %s total: %s size: %s start: %d" % (cl['success'], cl['total'], cl['size'], it))
+    if debug:
+      print("success: %s total: %s size: %s start: %d" % \
+        (cl['success'], cl['total'], cl['size'], it))
     for k,v in cl.items():
       if k == 'total':
         total = v
@@ -206,10 +208,14 @@ def get_recent(s, num="all"):
 
           #print("%4s | %10s | %14s | %s" % (star, tstr, contact, lines[line]))
           msgs.append([d.get('id'),star,tstr,contact,lastMsg, name])
-    print("calling with start=%s total=%s" % (it, total))
+    if debug:
+      print("calling with start=%s total=%s" % (it, total))
+      print("saving new contact list: %s" % c)
     save_contacts(c)
     cl = zwh.message_list(s, start=it)
     it = it + total
+
+  print("returning from get_recent")
   return msgs
 
 def show_recent(s, num="all", interactive=False, mark_read=False, gui=False):
@@ -304,9 +310,11 @@ def show_recent(s, num="all", interactive=False, mark_read=False, gui=False):
     for msg in unread_ids:
       r = zwh.message_read(s,msg)
       if r.get("success"):
-        print("Successfully marked msg %s as read." % msg)
+        if debug:
+          print("Successfully marked msg %s as read." % msg)
       else:
-        print(r,msg)
+        if debug:
+          print(r,msg)
 
 
 

@@ -20,13 +20,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-notify2.init("ZipWhip")
 
 def display_notification(msg_id, msg_from, msg_body):
-  m = zw_lib.message(msg_id, msg_body, msg_from, msg_from)
+  notify2.init("ZipWhip")
+  m = zw_lib.message(msg_id, msg_body, msg_from, msg_from, "qt")
   n = notify2.Notification("New Text from: %s" % msg_from,
                            msg_body,
                            "notification-message-im"   # Icon name)
   )
   #n.add_action("mark_read", "Mark As Read", m.mark_read)
+  n.add_action("reply", "Reply", passs)
   n.show()
+
+def passs(buf):
+  pass

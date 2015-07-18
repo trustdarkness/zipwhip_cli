@@ -1,13 +1,11 @@
 #!/usr/bin/python3
-from dbus.mainloop.glib import DBusGMainLoop
-from gi.repository import Gtk, GLib, GObject
+
+from gi.repository import Gtk
 from gi.repository import AppIndicator3 as appindicator
 import zw_lib
 import notify2
 import time
 import threading
-import dbus
-import dbus.service
 
 __author__ = "voytek@trustdarkness.com"
 __email__ = "voytek@trustdarkness.com"
@@ -27,14 +25,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+debug = 1
+
 
 def boldify(string):
+  """returns an html bolded version of the given string"""
   return '<b>'+string+'</b>'
 
 def deboldify(string):
-  return string[3:][:-4]
+  """Strips <b></b> from a string (assuming its just the string in bold tags"""
+  if string.find("<b>") != -1:
+    return string[3:][:-4]
 
-def check(buf, num=30):
+def check(buf, num=90):
   """
   Get the first X new messages.  Defaults to 30.
  
@@ -42,18 +45,25 @@ def check(buf, num=30):
     buf - buffer passed from the menu object
     num - number of messages to get
   """
-  print("checking new messages")
+  if debug:
+    print("checking new messages")
   new = zw_lib.get_recent(s, num)
-  print("got %d recent msgs" % len(new))
-  #notify2.init("Zipwhip")
+  if debug:
+    print("got %d recent msgs" % len(new))
   
   for row in new:
     if row[1] == "*":
-      num = row[3]
+      msg_from = row[3]
+      if row[5].strip():
+        msg_from = row[5]
       date = row[2]
-      msg = row[4].strip()
-      n = notify2.Notification("New SMS from: %s" % num, msg, 'phone')
-      n.show()
+      msg_body = row[4].strip()
+      msg_id = row[0]
+      msg = message(msg_id, msg_from, msg_body)
+      n = notify(msg)
+      n.display()
+  return
+
 
 def newmsg(buf, to=None):
   """
@@ -67,7 +77,7 @@ def newmsg(buf, to=None):
   win.show_all()
   Gtk.main()
 
-def readmsgs(buf, num=30):
+def readmsgs(buf, num=90):
   """
   View recent messages in a list window.
 
@@ -82,7 +92,7 @@ def readmsgs(buf, num=30):
   win.show_all()
   Gtk.main()
 
-def markread(buf, num=30):
+def markread(buf, num=90):
   """
   Mark recent messages read.
 
@@ -92,13 +102,12 @@ def markread(buf, num=30):
   """
   s = zw_lib.authenticate()
   zw_lib.show_recent(s, num, False, True, False)
-  notify2.init("Zipwhip")
   n = notify2.Notification("Zipwhip", 
         "All messages marked read", 
         "phone")
   n.show()
 
-def sendMessage(num, msg):
+def sendMessage(num, msg, notify_success=False):
   """
   Send a message and notify the user of success.
 
@@ -106,11 +115,14 @@ def sendMessage(num, msg):
     num - number to send message to
     msg - message to send
   """
-  print("sending message to %s: %s" % (num, msg))
   r = zw_lib.send_message(num, msg)
-  notify2.init("Zipwhip")
-  n = notify2.Notification("Zipwhip", r, "phone")
-  n.show()
+  if r == 1 and notify_success:
+    n = notify2.Notification("Zipwhip", "Message Sent Successfully", "phone")
+  elif r == 1:
+    pass
+  else:
+    n = notify2.Notification("Zipwhip", r, "phone")
+    n.show()
 
 
 class EntryWindow(Gtk.Window):
@@ -239,18 +251,24 @@ class CellRendererTextWindow(Gtk.Window):
     self.scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
     self.scrolled.add(self.treeview)
     self.grid.attach(self.scrolled, 0, 0, 8, 10)
-    self.grid.attach_next_to(self.buttons[0], self.scrolled, Gtk.PositionType.BOTTOM, 1, 1)
+    self.grid.attach_next_to( \
+      self.buttons[0], self.scrolled, Gtk.PositionType.BOTTOM, 1, 1)
     for i, button in enumerate(self.buttons[1:]):
-      self.grid.attach_next_to(button, self.buttons[i], Gtk.PositionType.RIGHT, 1, 1)
+      self.grid.attach_next_to( \
+        button, self.buttons[i], Gtk.PositionType.RIGHT, 1, 1)
     #scrolled.add(treeview)
     self.add(self.grid)
 
   def on_tree_selection_changed(self, selection):
+    """Handler for selection change.  Currently only for debugging"""
     model, treeiter = selection.get_selected()
     self.selected = model[treeiter]
-    print(model[treeiter][1])
+    if debug:
+      print(model[treeiter][1])
     if treeiter != None:
-      print("You selected %s, msg id %s" % (model[treeiter][0], model[treeiter][3]))
+      if debug:
+        print("You selected %s, msg id %s" % \
+          (model[treeiter][0], model[treeiter][3]))
 
   def on_selection_button_clicked(self, widget):
     """Called on any of the button clicks"""
@@ -271,7 +289,96 @@ class CellRendererTextWindow(Gtk.Window):
         iter = model.get_iter(path)
         model.remove(iter)
 
-def background_run(refresh_interval=100):
+class notify:
+  """class for notification objects"""
+
+  def __init__(self, msg):
+    """initialize and setup the libnotify object
+ 
+    Args:
+      self
+      msg - message object
+    """
+    self.ourMsg = msg
+    self.n = notify2.Notification("New Text from: %s" % msg.get_from(),
+                             msg.get_body(),
+                             "phone"   # Icon name)
+    )
+    self.n.timeout = 5000
+    self.n.add_action("reply", "Reply", self.reply)
+    self.n.add_action("read", "Mark Read", self.mark_read)
+    self.n.add_action("delete", "Delete", self.delete)
+
+  def display(self):
+    """display the notification"""
+    try:
+      self.n.close()
+      self.n.show()
+    except:
+      self.n.show()
+
+  def reply(self, notifyObj, action):
+    """catch reply button click
+    
+    Args: 
+      self
+      notifyObj - the notify2 object
+      action - text field from add_action
+    """
+    newmsg(None, self.ourMsg.get_from())
+    zw_lib.mark_read(self.ourMsg.get_id())
+    if debug:
+      print("replied and marked as read")
+    return
+
+  def mark_read(self, notifyObj, action):
+    """catch the mark read button click
+
+    Args: 
+      self
+      notifyObj - the notify2 object
+      action - text field from add_action
+    """
+    zw_lib.mark_read(self.ourMsg.get_id())
+    if debug:
+      print("marked as read")
+    return
+
+  def delete(self, notifyObj, action):
+    """catch the delete button click
+
+    Args: 
+      self
+      notifyObj - the notify2 object
+      action - text field from add_action
+    """
+    zw_lib.delete(self.ourMsg.get_id())
+    if debug:
+      print("deleted")
+    return
+
+class message:
+  """message object contains attributes for a given message"""
+
+  def __init__(self, msg_id, msg_from, msg_body):
+    """initialize and setup internal data members"""
+    self.id = msg_id
+    self.frm = msg_from
+    self.body = msg_body
+
+  def get_id(self):
+    return self.id
+  
+  def get_from(self):
+    return self.frm
+
+  def get_body(self):
+    return self.body
+
+def nothing(buf):
+  pass
+
+def background_run(refresh_interval=90):
   """
   Loop to run in the thread to check for new messages regularly.
 
@@ -286,20 +393,22 @@ def app_main():
   """
   Main loop for background threads.
   """
-  thread = threading.Thread(target=background_run)
-  thread.daemon = True
-  thread.start()
+  background_thread = threading.Thread(target=background_run)
+  background_thread.daemon = True
+  background_thread.start()
+
 
 if __name__ == "__main__":
+  notify2.init("Zipwhip")
   try:
     s = zw_lib.authenticate()
   except:
-    notify2.init("Zipwhip")
-    notify2.Notification("Zipwhip", 
+    n = notify2.Notification("Zipwhip", 
       "Error: Can't connect to Zipwhip.  Exiting.", "phone")
+    n.show()
     sys.exit(0)
   ind = appindicator.Indicator.new(
-                        "zipwhip-client",
+                        "Zipwhip",
                         "phone",
                         appindicator.IndicatorCategory.APPLICATION_STATUS,
                        )
@@ -342,4 +451,3 @@ if __name__ == "__main__":
   check(None)
   app_main()
   Gtk.main()
-
