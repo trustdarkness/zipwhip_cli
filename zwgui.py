@@ -6,6 +6,7 @@ import zw_lib
 import notify2
 import time
 import threading
+import sys
 
 __author__ = "voytek@trustdarkness.com"
 __email__ = "voytek@trustdarkness.com"
@@ -77,7 +78,7 @@ def newmsg(buf, to=None):
   win.show_all()
   Gtk.main()
 
-def readmsgs(buf, num=90):
+def readmsgs(buf, num=190):
   """
   View recent messages in a list window.
 
@@ -308,6 +309,7 @@ class notify:
     self.n.add_action("reply", "Reply", self.reply)
     self.n.add_action("read", "Mark Read", self.mark_read)
     self.n.add_action("delete", "Delete", self.delete)
+    self.n.connect("closed", self.mark_read)
 
   def display(self):
     """display the notification"""
@@ -331,7 +333,7 @@ class notify:
       print("replied and marked as read")
     return
 
-  def mark_read(self, notifyObj, action):
+  def mark_read(self, notifyObj, action=None):
     """catch the mark read button click
 
     Args: 

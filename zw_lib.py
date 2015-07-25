@@ -113,9 +113,8 @@ def delete(msg_id):
 
 def send_message(to, body):
   s = authenticate()
-  if (len(to) != 10): # TODO: make this less hackish
-    with open(CONTACTS_FILE, 'rb') as f:
-      c = pickle.load(f)
+  if (len(to) != 10 and len(to) != 11): # TODO: make this less hackish
+    c = get_contacts()
     to = c[to]
   if debug:
     print("sending message to %s" % to)
@@ -149,6 +148,7 @@ def get_recent(s, num="all"):
   it = 30
   if num == 'all':
     num = 100000000
+  c = get_contacts()
   while cl['total'] and it <= num:
     if debug:
       print("success: %s total: %s size: %s start: %d" % \
@@ -186,8 +186,6 @@ def get_recent(s, num="all"):
           #print(dir(zwh))
           #print(help(zwh.message_read))
           #sys.exit(0)      
-          with open(CONTACTS_FILE, 'rb') as f:
-            c = pickle.load(f)  
           if not d.get('isRead'):
             star = '*'
             unread_ids.append(d.get('id'))
@@ -204,17 +202,18 @@ def get_recent(s, num="all"):
             contact = "%s" % \
               d.get('fromName') #, d.get('lastContactLastName'))
           multiline = False
-          c[name] = contact
+          if name.strip():
+            c[name] = contact
 
           #print("%4s | %10s | %14s | %s" % (star, tstr, contact, lines[line]))
           msgs.append([d.get('id'),star,tstr,contact,lastMsg, name])
-    if debug:
-      print("calling with start=%s total=%s" % (it, total))
-      print("saving new contact list: %s" % c)
-    save_contacts(c)
     cl = zwh.message_list(s, start=it)
     it = it + total
 
+  if debug:
+    print("calling with start=%s total=%s" % (it, total))
+    print("saving new contact list: %s" % c)
+  save_contacts(c)
   print("returning from get_recent")
   return msgs
 
