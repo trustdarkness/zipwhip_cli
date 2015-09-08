@@ -7,6 +7,7 @@ import notify2
 import time
 import threading
 import sys
+import os
 
 __author__ = "voytek@trustdarkness.com"
 __email__ = "voytek@trustdarkness.com"
@@ -27,6 +28,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 debug = 1
+
+home = os.path.expanduser("~")
+SETTINGS_DIR = os.path.join(home, ".zwcli")
+SETTINGS_FILE = os.path.join(home, ".zwcli", "settings")
 
 
 def boldify(string):
@@ -174,6 +179,52 @@ class EntryWindow(Gtk.Window):
     time.sleep(0.1)
     self.destroy()
         
+class PasswordWindow(Gtk.Window):
+  """Window to send a message."""
+
+  def __init__(self):
+    """ 
+    Initialize class.
+    """
+    Gtk.Window.__init__(self, title="Zipwhip: Login")
+    self.set_size_request(250, 150)
+    self.set_border_width(10)
+    self.set_position(Gtk.WindowPosition.CENTER)
+    self.set_default_icon_name('phone')
+    self.timeout_id = None
+
+    vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+    self.add(vbox)
+
+    self.numentry = Gtk.Entry()
+    self.numentry.set_text("Enter Phone Number")
+    vbox.pack_start(self.numentry, True, True, 0)
+
+    self.msgentry = Gtk.Entry()
+    self.msgentry.set_text("Enter Password")
+    self.msgentry.set_visibility(False)
+    vbox.pack_start(self.msgentry, True, True, 0)
+
+    hbox = Gtk.Box(spacing=6)
+    vbox.pack_start(hbox, True, True, 0)
+
+    button = Gtk.Button("Login")
+    button.connect("clicked", self.on_click_me_clicked)
+    hbox.pack_start(button, True, True, 0)
+
+  def on_click_me_clicked(self, button):
+    """
+    Method to handle click event on Send SMS button.
+ 
+    Args:
+      button - the button 
+    """
+    u = self.numentry.get_text()
+    p = self.msgentry.get_text()
+    s = zw_lib.authenticate(u,p)
+    self.destroy()
+    Gtk.main_quit()
+
 
 class CellRendererTextWindow(Gtk.Window):
   """List window for recent messages"""
@@ -402,6 +453,11 @@ def app_main():
 
 if __name__ == "__main__":
   notify2.init("Zipwhip")
+  if not os.path.isfile(SETTINGS_FILE):
+    s = PasswordWindow()
+    s.connect("delete-event", Gtk.main_quit)
+    s.show_all()
+    Gtk.main()
   try:
     s = zw_lib.authenticate()
   except:

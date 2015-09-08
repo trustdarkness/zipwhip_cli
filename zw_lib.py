@@ -54,7 +54,7 @@ CONTACTS_FILE = os.path.join(SETTINGS_DIR, "contacts")
 def get_handle():
   return zwh
 
-def authenticate():
+def authenticate(username=None, password=None, auto=True):
   """
   Authenticate to ZipWhip and get a session key.  Offer to save user
   credentials locally (insecurely, for now).
@@ -63,22 +63,25 @@ def authenticate():
     Session Key to be used in future operations.  Also optionally
     saves login information to ~/.zw/settings
   """
-  autologin = False
-  try:
-    with open(SETTINGS_FILE, 'rb') as f: 
-      # p is here for historical reasons only, we store the password in the
-      # system keychain now.
-      u, p = pickle.load(f)
-      p = keyring.get_password("Zipwhip", u)
-      autologin = True
-  except:
-    u = input("Enter zipwhip number: ")
-    p = getpass.getpass("Enter password: ")
+  if username and password:
+    u = username
+    p = password
+  else:
+    try:
+      with open(SETTINGS_FILE, 'rb') as f: 
+        # p is here for historical reasons only, we store the password in the
+        # system keychain now.
+        u, p = pickle.load(f)
+        p = keyring.get_password("Zipwhip", u)
+        autologin = True
+    except:
+      u = input("Enter zipwhip number: ")
+      p = getpass.getpass("Enter password: ")
   r = zwh.user_login(u,p)
   s = r.get("response")
   if r.get("success"):
-    print("You've successfully logged in.")
-    if not autologin:
+    if not auto:
+      print("You've successfully logged in.")
       print("Would you like to save this info? ")
       yn = input("Save? y/n ")
       if yn.upper() == "Y":
@@ -89,6 +92,15 @@ def authenticate():
           p = "passwordstoredinsystemkeychain"
           pckl = (u, p)
           pickle.dump(pckl, f)
+    else:
+      success = keyring.set_password("Zipwhip", u, p)
+      # TODO (voytek): make this more pythonic)
+      subprocess.call(["mkdir", "-p", SETTINGS_DIR])
+      with open(SETTINGS_FILE, 'wb') as f:
+        p = "passwordstoredinsystemkeychain"
+        pckl = (u, p)
+        pickle.dump(pckl, f)
+
     try:
       with open(CONTACTS_FILE, 'rb') as f:
         c = pickle.load(f)
