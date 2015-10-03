@@ -60,7 +60,7 @@ def check(buf, num=90):
       date = row[2]
       msg_body = row[4].strip()
       msg_id = row[0]
-      msg = message(msg_id, msg_from, msg_body)
+      msg = message(msg_id, msg_from, msg_body, date)
       n = notify(msg)
       n.display()
   return
@@ -301,7 +301,8 @@ class notify:
       msg - message object
     """
     self.ourMsg = msg
-    self.n = notify2.Notification("New Text from: %s" % msg.get_from(),
+    self.n = notify2.Notification("New Text from: %s Sent: %s" %  
+                             (msg.get_from(), msg.get_date()),
                              msg.get_body(),
                              "phone"   # Icon name)
     )
@@ -309,7 +310,6 @@ class notify:
     self.n.add_action("reply", "Reply", self.reply)
     self.n.add_action("read", "Mark Read", self.mark_read)
     self.n.add_action("delete", "Delete", self.delete)
-    self.n.connect("closed", self.mark_read)
 
   def display(self):
     """display the notification"""
@@ -362,11 +362,12 @@ class notify:
 class message:
   """message object contains attributes for a given message"""
 
-  def __init__(self, msg_id, msg_from, msg_body):
+  def __init__(self, msg_id, msg_from, msg_body, msg_date):
     """initialize and setup internal data members"""
     self.id = msg_id
     self.frm = msg_from
     self.body = msg_body
+    self.date = msg_date
 
   def get_id(self):
     return self.id
@@ -376,6 +377,9 @@ class message:
 
   def get_body(self):
     return self.body
+  
+  def get_date(self):
+    return self.date
 
 def nothing(buf):
   pass
@@ -401,7 +405,7 @@ def app_main():
 
 
 if __name__ == "__main__":
-  notify2.init("Zipwhip")
+  notify2.init("Zipwhip", 'glib')
   try:
     s = zw_lib.authenticate()
   except:
