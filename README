@@ -1,3 +1,12 @@
+THIS PROJECT IS DEPRECATED.  Unfortunately, zipwhip turned their software into
+mostly garbage.  This is one of the (many) problems with relying too heavily
+on closed and proprietary software and infrastructure.
+
+I'm currently using pushbullet to replicate this funcionality, but I don't 
+love it.  When I have some time, I would love to build something integrated
+with owncloud or some other self hosted solution that is free (as in speech
+AND beer).
+
 zipwhip_cli
 ===========
 
